@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                ginger
-version:             0.8.0.1
+version:             0.8.1.0
 synopsis:            An implementation of the Jinja2 template language in Haskell
 description:         Ginger is Jinja, minus the most blatant pythonisms. Wants
                      to be feature complete, but isn't quite there yet.
@@ -31,6 +31,7 @@ library
                  , Text.PrintfA
                  , Text.Ginger.Run.VM
                  , Text.Ginger.Run.FuncUtils
+                 , Text.Ginger.TH
   other-modules: Text.Ginger.Run.Type
                , Text.Ginger.Run.Builtins
   -- other-extensions:
@@ -51,6 +52,7 @@ library
                , unordered-containers >= 0.2.5
                , utf8-string
                , vector
+               , template-haskell
   if !impl(ghc >= 8.0)
     build-depends: semigroups == 0.18.*
   hs-source-dirs:      src

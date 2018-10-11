@@ -6,12 +6,15 @@
 {-#LANGUAGE GeneralizedNewtypeDeriving #-}
 {-#LANGUAGE OverloadedStrings #-}
 {-#LANGUAGE FlexibleInstances #-}
+{-#LANGUAGE DeriveDataTypeable #-}
+{-#LANGUAGE TemplateHaskellQuotes #-}
 module Text.Ginger.Html
 ( Html
 , unsafeRawHtml
 , html
 , htmlSource
 , ToHtml (..)
+, liftHtml
 )
 where
 
@@ -19,9 +22,22 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Semigroup as Semigroup
 
+import Data.Data
+import Language.Haskell.TH.Syntax
+
+-- | `Text` is not easily liftable, this implements the "hack" from:
+--   https://stackoverflow.com/questions/38143464/cant-find-inerface-file-declaration-for-variable
+liftHtml :: Data a => a -> Q Exp
+liftHtml =  dataToExpQ (\a -> liftText <$> cast a)
+    where
+      liftText txt = AppE (VarE 'Text.pack) <$> lift (Text.unpack txt)
+
 -- | A chunk of HTML source.
 newtype Html = Html { unHtml :: Text }
-    deriving (Semigroup.Semigroup, Monoid, Show, Eq, Ord)
+    deriving (Semigroup.Semigroup, Monoid, Show, Eq, Ord, Data)
+
+instance Lift Html where
+  lift = liftHtml
 
 -- | Types that support conversion to HTML.
 class ToHtml s where

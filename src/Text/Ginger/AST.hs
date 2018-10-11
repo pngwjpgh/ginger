@@ -1,4 +1,5 @@
 {-#LANGUAGE DeriveFunctor #-}
+{-#LANGUAGE DeriveDataTypeable #-}
 -- | Implements Ginger's Abstract Syntax Tree.
 module Text.Ginger.AST
 where
@@ -9,6 +10,8 @@ import Text.Ginger.Html
 import Data.Scientific (Scientific)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import Data.Data (Data)
+import Language.Haskell.TH.Syntax (Lift(..))
 
 
 -- | A context variable name.
@@ -21,17 +24,26 @@ data Template a
         , templateBlocks :: HashMap VarName (Block a)
         , templateParent :: Maybe (Template a)
         }
-        deriving (Show, Functor)
+        deriving (Show, Functor, Data)
+
+instance (Lift a, Data a) => Lift (Template a) where
+  lift = liftHtml
 
 -- | A macro definition ( @{% macro %}@ )
 data Macro a
     = Macro { macroArgs :: [VarName], macroBody :: Statement a }
-    deriving (Show, Functor)
+    deriving (Show, Functor, Data)
+
+instance (Lift a, Data a) => Lift (Macro a) where
+  lift = liftHtml
 
 -- | A block definition ( @{% block %}@ )
 data Block a
     = Block { blockBody :: Statement a } -- TODO: scoped blocks
-    deriving (Show, Functor)
+    deriving (Show, Functor, Data)
+
+instance (Lift a, Data a) => Lift (Block a) where
+  lift = liftHtml
 
 -- | Ginger statements.
 data Statement a
@@ -50,8 +62,11 @@ data Statement a
     | PreprocessedIncludeS a (Template a) -- ^ {% include "template" %}
     | NullS a -- ^ The do-nothing statement (NOP)
     | TryCatchS a (Statement a) [CatchBlock a] (Statement a) -- ^ Try / catch / finally
-    deriving (Show, Functor)
+    deriving (Show, Functor, Data)
 
+instance (Lift a, Data a) => Lift (Statement a) where
+  lift = liftHtml
+  
 stmtAnnotation (MultiS a _) = a
 stmtAnnotation (ScopedS a _) = a
 stmtAnnotation (IndentS a _ _) = a
@@ -75,7 +90,10 @@ data CatchBlock a =
         , catchCaptureAs :: Maybe VarName
         , catchBody :: Statement a
         }
-        deriving (Show, Functor)
+        deriving (Show, Functor, Data)
+
+instance (Data a, Lift a) => Lift (CatchBlock a) where
+  lift = liftHtml
 
 -- | Expressions, building blocks for the expression minilanguage.
 data Expression a
@@ -91,7 +109,10 @@ data Expression a
     | LambdaE a [Text] (Expression a) -- ^ (foo, bar) -> expr
     | TernaryE a (Expression a) (Expression a) (Expression a) -- ^ expr ? expr : expr
     | DoE a (Statement a) -- ^ do { statement; }
-    deriving (Show, Functor)
+    deriving (Show, Functor, Data)
+
+instance (Data a, Lift a) => Lift (Expression a) where
+  lift = liftHtml
 
 exprAnnotation (StringLiteralE a _) = a
 exprAnnotation (NumberLiteralE a _) = a
